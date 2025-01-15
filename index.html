@@ -1,0 +1,401 @@
+import React, { useState } from 'react';
+import { Search, Calendar, Globe2, Filter, Heart, HeartOff, ChevronUp, ChevronDown, ListFilter, Grid, CalendarDays }
+from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+
+const DebateTournamentBrowser = () => {
+// Expanded tournament data
+const [tournaments, setTournaments] = useState([
+{
+id: 1,
+name: "World Universities Debating Championship 2025",
+location: "Sydney, Australia",
+date: "2025-01-27",
+format: "British Parliamentary",
+level: "University",
+type: "International",
+registrationOpen: true,
+registrationDeadline: "2024-12-25",
+fee: "$500",
+teamSize: "2",
+description: "The most prestigious university debating championship bringing together the world's best debaters.",
+favorited: false
+},
+{
+id: 2,
+name: "North American Debating Championship",
+location: "Toronto, Canada",
+date: "2025-02-15",
+format: "British Parliamentary",
+level: "University",
+type: "Regional",
+registrationOpen: true,
+registrationDeadline: "2025-01-15",
+fee: "$300",
+teamSize: "2",
+description: "The premier debating championship for North American universities.",
+favorited: false
+},
+{
+id: 3,
+name: "European Schools Debating Championship",
+location: "Berlin, Germany",
+date: "2025-03-10",
+format: "World Schools",
+level: "High School",
+type: "Regional",
+registrationOpen: false,
+registrationDeadline: "2025-02-01",
+fee: "$250",
+teamSize: "3",
+description: "The largest high school debating competition in Europe.",
+favorited: false
+}
+]);
+
+// States
+const [searchTerm, setSearchTerm] = useState("");
+const [selectedLevel, setSelectedLevel] = useState("all");
+const [selectedType, setSelectedType] = useState("all");
+const [selectedFormat, setSelectedFormat] = useState("all");
+const [sortBy, setSortBy] = useState("date");
+const [sortOrder, setSortOrder] = useState("asc");
+const [viewMode, setViewMode] = useState("grid");
+const [showRegistrationOpen, setShowRegistrationOpen] = useState(false);
+const [currentMonth, setCurrentMonth] = useState(new Date());
+
+// Filter and sort tournaments
+const filteredAndSortedTournaments = tournaments
+.filter(tournament => {
+const matchesSearch = tournament.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+tournament.location.toLowerCase().includes(searchTerm.toLowerCase());
+const matchesLevel = selectedLevel === "all" || tournament.level === selectedLevel;
+const matchesType = selectedType === "all" || tournament.type === selectedType;
+const matchesFormat = selectedFormat === "all" || tournament.format === selectedFormat;
+const matchesRegistration = !showRegistrationOpen || tournament.registrationOpen;
+return matchesSearch && matchesLevel && matchesType && matchesFormat && matchesRegistration;
+})
+.sort((a, b) => {
+let comparison = 0;
+switch (sortBy) {
+case "date":
+comparison = new Date(a.date) - new Date(b.date);
+break;
+case "name":
+comparison = a.name.localeCompare(b.name);
+break;
+case "fee":
+comparison = parseInt(a.fee.replace(/\D/g, '')) - parseInt(b.fee.replace(/\D/g, ''));
+break;
+}
+return sortOrder === "asc" ? comparison : -comparison;
+});
+
+const toggleFavorite = (id) => {
+setTournaments(tournaments.map(t =>
+t.id === id ? { ...t, favorited: !t.favorited } : t
+));
+};
+
+const toggleSortOrder = () => {
+setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+};
+
+const formatDate = (dateStr) => {
+return new Date(dateStr).toLocaleDateString('en-US', {
+year: 'numeric',
+month: 'long',
+day: 'numeric'
+});
+};
+
+// Calendar helper functions
+const getDaysInMonth = (date) => {
+const year = date.getFullYear();
+const month = date.getMonth();
+const days = new Date(year, month + 1, 0).getDate();
+return Array.from({ length: days }, (_, i) => new Date(year, month, i + 1));
+};
+
+const getMonthDays = () => {
+const days = getDaysInMonth(currentMonth);
+const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+const prefixDays = Array(firstDay.getDay()).fill(null);
+return [...prefixDays, ...days];
+};
+
+const getTournamentsForDate = (date) => {
+return tournaments.filter(t => {
+const tournamentDate = new Date(t.date);
+return tournamentDate.getDate() === date.getDate() &&
+tournamentDate.getMonth() === date.getMonth() &&
+tournamentDate.getFullYear() === date.getFullYear();
+});
+};
+
+return (
+<div className="max-w-7xl mx-auto p-6 space-y-6">
+    <Card className="bg-gradient-to-r from-blue-50 to-indigo-50">
+        <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Globe2 className="h-8 w-8 text-blue-600" />
+                    <span className="text-2xl">Debate Tournament Browser</span>
+                </div>
+                <div className="flex gap-2">
+                    <button onClick={()=> setViewMode('grid')}
+                        className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-blue-100' : ''}`}
+                        >
+                        <Grid className="h-5 w-5" />
+                    </button>
+                    <button onClick={()=> setViewMode('list')}
+                        className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-blue-100' : ''}`}
+                        >
+                        <ListFilter className="h-5 w-5" />
+                    </button>
+                    <button onClick={()=> setViewMode('calendar')}
+                        className={`p-2 rounded-md ${viewMode === 'calendar' ? 'bg-blue-100' : ''}`}
+                        >
+                        <CalendarDays className="h-5 w-5" />
+                    </button>
+                </div>
+            </CardTitle>
+        </CardHeader>
+        <CardContent>
+            {/* Search and Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <input type="text" placeholder="Search tournaments..."
+                        className="w-full pl-10 pr-4 py-2 border rounded-md bg-white shadow-sm" value={searchTerm}
+                        onChange={(e)=> setSearchTerm(e.target.value)}
+                    />
+                </div>
+
+                <select className="border rounded-md p-2 bg-white shadow-sm" value={selectedLevel} onChange={(e)=>
+                    setSelectedLevel(e.target.value)}
+                    >
+                    <option value="all">All Levels</option>
+                    <option value="University">University</option>
+                    <option value="High School">High School</option>
+                </select>
+
+                <select className="border rounded-md p-2 bg-white shadow-sm" value={selectedType} onChange={(e)=>
+                    setSelectedType(e.target.value)}
+                    >
+                    <option value="all">All Types</option>
+                    <option value="International">International</option>
+                    <option value="Regional">Regional</option>
+                    <option value="National">National</option>
+                </select>
+
+                <select className="border rounded-md p-2 bg-white shadow-sm" value={sortBy} onChange={(e)=>
+                    setSortBy(e.target.value)}
+                    >
+                    <option value="date">Sort by Date</option>
+                    <option value="name">Sort by Name</option>
+                    <option value="fee">Sort by Fee</option>
+                </select>
+            </div>
+
+            {/* Additional Filters */}
+            <div className="flex flex-wrap gap-4 mb-6">
+                <button onClick={toggleSortOrder}
+                    className="flex items-center gap-1 px-3 py-1 bg-blue-50 rounded-md hover:bg-blue-100">
+                    {sortOrder === "asc" ?
+                    <ChevronUp className="h-4 w-4" /> :
+                    <ChevronDown className="h-4 w-4" />}
+                    {sortOrder === "asc" ? "Ascending" : "Descending"}
+                </button>
+
+                <button onClick={()=> setShowRegistrationOpen(!showRegistrationOpen)}
+                    className={`px-3 py-1 rounded-md ${
+                    showRegistrationOpen ? 'bg-blue-600 text-white' : 'bg-blue-50'
+                    }`}
+                    >
+                    Registration Open Only
+                </button>
+            </div>
+
+            {/* Tournament Display */}
+            {viewMode === 'grid' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredAndSortedTournaments.map(tournament => (
+                <Card key={tournament.id} className="hover:shadow-lg transition-shadow bg-white">
+                    <CardContent className="p-6">
+                        <div className="flex justify-between items-start mb-4">
+                            <h3 className="font-semibold text-lg text-blue-800">{tournament.name}</h3>
+                            <button onClick={()=> toggleFavorite(tournament.id)}
+                                className="text-pink-500 hover:text-pink-600"
+                                >
+                                {tournament.favorited ?
+                                <Heart className="fill-current" /> :
+                                <HeartOff />}
+                            </button>
+                        </div>
+
+                        <div className="space-y-2 mb-4">
+                            <p className="text-gray-600 flex items-center gap-2">
+                                <Globe2 className="h-4 w-4" />
+                                {tournament.location}
+                            </p>
+                            <p className="text-gray-600 flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                {formatDate(tournament.date)}
+                            </p>
+                            <p className="text-gray-600">Format: {tournament.format}</p>
+                            <p className="text-gray-600">Team Size: {tournament.teamSize}</p>
+                            <p className="text-gray-600">Fee: {tournament.fee}</p>
+                        </div>
+
+                        <div className="space-x-2 mb-4">
+                            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                                {tournament.level}
+                            </span>
+                            <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                                {tournament.type}
+                            </span>
+                        </div>
+
+                        <p className="text-sm text-gray-600 mb-4">{tournament.description}</p>
+
+                        <div className="mt-4">
+                            <button className={`w-full px-4 py-2 rounded-md ${ tournament.registrationOpen
+                                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                : 'bg-gray-300 text-gray-600 cursor-not-allowed' }`}
+                                disabled={!tournament.registrationOpen}>
+                                {tournament.registrationOpen ? 'Register Now' : 'Registration Closed'}
+                            </button>
+                            {tournament.registrationOpen && (
+                            <p className="text-sm text-gray-500 mt-2 text-center">
+                                Registration closes: {formatDate(tournament.registrationDeadline)}
+                            </p>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+                ))}
+            </div>
+            )}
+
+            {viewMode === 'list' && (
+            <div className="space-y-4">
+                {filteredAndSortedTournaments.map(tournament => (
+                <Card key={tournament.id} className="hover:shadow-lg transition-shadow bg-white">
+                    <CardContent className="p-4">
+                        <div className="flex flex-col md:flex-row gap-4 justify-between">
+                            <div className="flex-1">
+                                <div className="flex justify-between items-start">
+                                    <h3 className="font-semibold text-lg text-blue-800">{tournament.name}</h3>
+                                    <button onClick={()=> toggleFavorite(tournament.id)}
+                                        className="text-pink-500 hover:text-pink-600"
+                                        >
+                                        {tournament.favorited ?
+                                        <Heart className="fill-current" /> :
+                                        <HeartOff />}
+                                    </button>
+                                </div>
+                                <p className="text-sm text-gray-600 mt-2">{tournament.description}</p>
+                            </div>
+
+                            <div className="flex-1">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <p className="text-gray-600">
+                                        <Globe2 className="inline h-4 w-4 mr-1" />
+                                        {tournament.location}
+                                    </p>
+                                    <p className="text-gray-600">
+                                        <Calendar className="inline h-4 w-4 mr-1" />
+                                        {formatDate(tournament.date)}
+                                    </p>
+                                    <p className="text-gray-600">Format: {tournament.format}</p>
+                                    <p className="text-gray-600">Fee: {tournament.fee}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col justify-between items-end">
+                                <div className="space-x-2">
+                                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
+                                        {tournament.level}
+                                    </span>
+                                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm">
+                                        {tournament.type}
+                                    </span>
+                                </div>
+                                <button // ... [Previous code remains the same until the list view button]
+                                    className={`px-6 py-2 rounded-md ${ tournament.registrationOpen
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                    : 'bg-gray-300 text-gray-600 cursor-not-allowed' }`}
+                                    disabled={!tournament.registrationOpen}>
+                                    {tournament.registrationOpen ? 'Register Now' : 'Registration Closed'}
+                                </button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                ))}
+            </div>
+            )}
+
+            {viewMode === 'calendar' && (
+            <div className="bg-white rounded-lg p-6">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">
+                        {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </h3>
+                    <div className="flex gap-2">
+                        <button onClick={()=> setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() -
+                            1)))}
+                            className="p-2 hover:bg-blue-50 rounded-md"
+                            >
+                            <ChevronUp className="h-4 w-4" />
+                        </button>
+                        <button onClick={()=> setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() +
+                            1)))}
+                            className="p-2 hover:bg-blue-50 rounded-md"
+                            >
+                            <ChevronDown className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-7 gap-4 mb-4">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                    <div key={day} className="text-center font-semibold">
+                        {day}
+                    </div>
+                    ))}
+                </div>
+
+                <div className="grid grid-cols-7 gap-4">
+                    {getMonthDays().map((day, index) => (
+                    <div key={index} className={`min-h-24 border rounded-lg p-2 ${ day ? 'hover:bg-blue-50'
+                        : 'bg-gray-50' }`}>
+                        {day && (
+                        <>
+                            <div className="text-right text-gray-600">
+                                {day.getDate()}
+                            </div>
+                            <div className="mt-1">
+                                {getTournamentsForDate(day).map(tournament => (
+                                <div key={tournament.id}
+                                    className="text-xs p-1 mb-1 rounded bg-blue-100 text-blue-800 truncate"
+                                    title={tournament.name}>
+                                    {tournament.name}
+                                </div>
+                                ))}
+                            </div>
+                        </>
+                        )}
+                    </div>
+                    ))}
+                </div>
+            </div>
+            )}
+        </CardContent>
+    </Card>
+</div>
+);
+};
+
+export default DebateTournamentBrowser;
